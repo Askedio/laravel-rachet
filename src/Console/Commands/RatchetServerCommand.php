@@ -48,6 +48,20 @@ class RatchetServerCommand extends Command
     protected $port;
 
     /**
+     * ZMQ server host.
+     *
+     * @var string
+     */
+    protected $zmqHost;
+
+    /**
+     * ZMQ server port.
+     *
+     * @var int
+     */
+    protected $zmqPort;
+
+    /**
      * The class to use for the server.
      *
      * @var string
@@ -109,6 +123,8 @@ class RatchetServerCommand extends Command
         return [
             ['host', null, InputOption::VALUE_OPTIONAL, 'Ratchet server host', config('ratchet.host', '0.0.0.0')],
             ['port', 'p', InputOption::VALUE_OPTIONAL, 'Ratchet server port', config('ratchet.port', 8080)],
+            ['zmqHost', null, InputOption::VALUE_OPTIONAL, 'ZMQ server host', config('ratchet.zmq.host', '127.0.0.1')],
+            ['zmqPort', null, InputOption::VALUE_OPTIONAL, 'ZMQ server port', config('ratchet.zmq.port', 5555)],
             ['class', null, InputOption::VALUE_OPTIONAL, 'Class that implements MessageComponentInterface.', config('ratchet.class')],
             ['driver', null, InputOption::VALUE_OPTIONAL, 'Ratchet connection driver [IoServer|WsServer|WampServer]', 'WampServer'],
             ['zmq', 'z', null, 'Bind server to a ZeroMQ socket (always on for WampServer)'],
@@ -124,6 +140,10 @@ class RatchetServerCommand extends Command
         $this->host = $this->option('host');
 
         $this->port = intval($this->option('port'));
+
+        $this->zmqHost = $this->option('zmqHost');
+
+        $this->zmqPort = intval($this->option('zmqPort'));
 
         $this->class = $this->option('class');
 
@@ -279,11 +299,11 @@ class RatchetServerCommand extends Command
      */
     private function bootZmqConnection()
     {
-        $this->info(sprintf('Starting ZMQ listener on: %s:%s', config('ratchet.zmq.host'), config('ratchet.zmq.port')));
+        $this->info(sprintf('Starting ZMQ listener on: %s:%s', $this->zmqHost, $this->zmqPort));
 
         $context = new ZMQContext($this->getEventLoop());
         $socket = $context->getSocket(config('ratchet.zmq.method', \ZMQ::SOCKET_PULL));
-        $socket->bind(sprintf('tcp://%s:%d', config('ratchet.zmq.host', '127.0.0.1'), config('ratchet.zmq.port', 5555)));
+        $socket->bind(sprintf('tcp://%s:%d', $this->zmqHost, $this->zmqPort));
 
         $socket->on('messages', function ($messages) {
             $this->ratchetServer->onEntry($messages);
